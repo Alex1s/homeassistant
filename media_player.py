@@ -82,7 +82,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             CONF_RECEIVER_MAX_VOLUME, default=DEFAULT_RECEIVER_MAX_VOLUME
         ): cv.positive_int,
         vol.Optional(CONF_SOURCES, default=DEFAULT_SOURCES): {cv.string: cv.string},
-        vol.Optional(CONF_DISABLE_SELECT_HDMI_OUTPUT): cv.boolean,
+        vol.Optional(CONF_DISABLE_SELECT_HDMI_OUTPUT, default=DEFAULT_DISABLE_SELECT_HDMI_OUTPUT): cv.boolean,
     }
 )
 
@@ -203,6 +203,7 @@ def setup_platform(
                     name=config.get(CONF_NAME),
                     max_volume=config.get(CONF_MAX_VOLUME),
                     receiver_max_volume=config.get(CONF_RECEIVER_MAX_VOLUME),
+                    disable_select_hdmi_output=config.get(CONF_DISABLE_SELECT_HDMI_OUTPUT),
                 )
             )
             KNOWN_HOSTS.append(host)
@@ -220,6 +221,7 @@ def setup_platform(
                         name=f"{config[CONF_NAME]} Zone 2",
                         max_volume=config.get(CONF_MAX_VOLUME),
                         receiver_max_volume=config.get(CONF_RECEIVER_MAX_VOLUME),
+                        disable_select_hdmi_output=config.get(CONF_DISABLE_SELECT_HDMI_OUTPUT),
                     )
                 )
             # Add Zone3 if available
@@ -233,6 +235,7 @@ def setup_platform(
                         name=f"{config[CONF_NAME]} Zone 3",
                         max_volume=config.get(CONF_MAX_VOLUME),
                         receiver_max_volume=config.get(CONF_RECEIVER_MAX_VOLUME),
+                        disable_select_hdmi_output=config.get(CONF_DISABLE_SELECT_HDMI_OUTPUT),
                     )
                 )
         except OSError:
@@ -246,6 +249,7 @@ def setup_platform(
                       config.get(CONF_SOURCES),
                       max_volume=config.get(CONF_MAX_VOLUME),
                       receiver_max_volume=config.get(CONF_RECEIVER_MAX_VOLUME),
+                      disable_select_hdmi_output=config.get(CONF_DISABLE_SELECT_HDMI_OUTPUT),
                     )
                 )
                 KNOWN_HOSTS.append(receiver.host)
@@ -264,6 +268,7 @@ class OnkyoDevice(MediaPlayerEntity):
         name=None,
         max_volume=SUPPORTED_MAX_VOLUME,
         receiver_max_volume=DEFAULT_RECEIVER_MAX_VOLUME,
+        disable_select_hdmi_output=DEFAULT_DISABLE_SELECT_HDMI_OUTPUT,
     ):
         """Initialize the Onkyo Receiver."""
         self._receiver = receiver
@@ -288,9 +293,11 @@ class OnkyoDevice(MediaPlayerEntity):
         self._source_mapping = sources
         self._reverse_mapping = {value: key for key, value in sources.items()}
         self._attributes = {}
-        self._hdmi_out_supported = True
+        self._hdmi_out_supported = not disable_select_hdmi_output
         self._audio_info_supported = True
         self._video_info_supported = True
+
+        _LOGGER.debug(f'disable_select_hdmi_output={disable_select_hdmi_output}')
 
     def command(self, command):
         """Run an eiscp command and catch connection errors."""
@@ -450,8 +457,26 @@ class OnkyoDevice(MediaPlayerEntity):
         """Set the input source."""
         if source in self._source_list:
             source = self._reverse_mapping[source]
-        _LOGGER.debug('THIS IS THE SOURCE: ' + source)
-        _LOGGER.error(source)
+        if source.startswith('internet-radio-'):
+            preset_str = source[len('internet-radio-'):]
+
+            preset_int = -1
+            try:
+                preset_int = int(preset_str)
+            except ValueError:
+                _LOGGER.warning(f'The internet radio preset "{preset_str} is not an integer."')
+                return
+
+            if preset_int not in range(1, 40 + 1):
+                _LOGGER.warning(f'The internet radio preset "{preset_int}" is not in the valid range, which is 1-40.')
+                return
+
+            for _ in range(2):
+                self.command('main.input-selector=internet-radio')
+            self._receiver.send(f'NPR{str(preset_int).zfill(2)}')
+            return
+
+
         self.command(f"input-selector {source}")
 
     def play_media(self, media_type: str, media_id: str, **kwargs: Any) -> None:
@@ -619,7 +644,5 @@ class OnkyoDeviceZone(OnkyoDevice):
         """Set the input source."""
         if source in self._source_list:
             source = self._reverse_mapping[source]
-        _LOGGER.debug('THIS IS THE SOURCE: ' + source)
-        _LOGGER.error(source)
         self.command(f"zone{self._zone}.selector={source}")
 

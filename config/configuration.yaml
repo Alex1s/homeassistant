@@ -15,8 +15,9 @@ media_player:
       name: Onkyo
       max_volume: 50
       receiver_max_volume: 80
+      disable_select_hdmi_output: True
       sources:
-        tv-cd: Vinyl
+        cd: Vinyl
         internet-radio-1: AirPlay
 
 logger:
