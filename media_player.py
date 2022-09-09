@@ -31,10 +31,12 @@ _LOGGER = logging.getLogger(__name__)
 CONF_SOURCES = "sources"
 CONF_MAX_VOLUME = "max_volume"
 CONF_RECEIVER_MAX_VOLUME = "receiver_max_volume"
+CONF_DISABLE_SELECT_HDMI_OUTPUT = 'disable_select_hdmi_output'
 
 DEFAULT_NAME = "Onkyo Receiver"
 SUPPORTED_MAX_VOLUME = 100
 DEFAULT_RECEIVER_MAX_VOLUME = 80
+DEFAULT_DISABLE_SELECT_HDMI_OUTPUT = False
 
 
 SUPPORT_ONKYO_WO_VOLUME = (
@@ -80,6 +82,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             CONF_RECEIVER_MAX_VOLUME, default=DEFAULT_RECEIVER_MAX_VOLUME
         ): cv.positive_int,
         vol.Optional(CONF_SOURCES, default=DEFAULT_SOURCES): {cv.string: cv.string},
+        vol.Optional(CONF_DISABLE_SELECT_HDMI_OUTPUT): cv.boolean,
     }
 )
 
@@ -237,7 +240,14 @@ def setup_platform(
     else:
         for receiver in eISCP.discover():
             if receiver.host not in KNOWN_HOSTS:
-                hosts.append(OnkyoDevice(receiver, config.get(CONF_SOURCES)))
+                hosts.append(
+                    OnkyoDevice(
+                      receiver,
+                      config.get(CONF_SOURCES),
+                      max_volume=config.get(CONF_MAX_VOLUME),
+                      receiver_max_volume=config.get(CONF_RECEIVER_MAX_VOLUME),
+                    )
+                )
                 KNOWN_HOSTS.append(receiver.host)
     add_entities(hosts, True)
 
@@ -286,9 +296,11 @@ class OnkyoDevice(MediaPlayerEntity):
         """Run an eiscp command and catch connection errors."""
         try:
             result = self._receiver.command(command)
-        except (ValueError, OSError, AttributeError, AssertionError):
+        except (ValueError, OSError, AttributeError, AssertionError) as err:
             if self._receiver.command_socket:
                 self._receiver.command_socket = None
+                _LOGGER.debug(f'Error when sending the command "{command}":')
+                _LOGGER.debug(err)
                 _LOGGER.debug("Resetting connection to %s", self._name)
             else:
                 _LOGGER.info("%s is disconnected. Attempting to reconnect", self._name)
@@ -438,6 +450,8 @@ class OnkyoDevice(MediaPlayerEntity):
         """Set the input source."""
         if source in self._source_list:
             source = self._reverse_mapping[source]
+        _LOGGER.debug('THIS IS THE SOURCE: ' + source)
+        _LOGGER.error(source)
         self.command(f"input-selector {source}")
 
     def play_media(self, media_type: str, media_id: str, **kwargs: Any) -> None:
@@ -605,5 +619,7 @@ class OnkyoDeviceZone(OnkyoDevice):
         """Set the input source."""
         if source in self._source_list:
             source = self._reverse_mapping[source]
+        _LOGGER.debug('THIS IS THE SOURCE: ' + source)
+        _LOGGER.error(source)
         self.command(f"zone{self._zone}.selector={source}")
 

@@ -18,3 +18,8 @@ media_player:
       sources:
         tv-cd: Vinyl
         internet-radio-1: AirPlay
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.onkyo: debug
