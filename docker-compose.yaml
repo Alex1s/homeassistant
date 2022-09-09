@@ -1,0 +1,12 @@
+version: '3'
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - ./media_player.py:/usr/src/homeassistant/homeassistant/components/onkyo/media_player.py
+    restart: unless-stopped
+    network_mode: host
+    user: 1000:1000

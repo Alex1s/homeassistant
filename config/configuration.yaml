@@ -1,0 +1,20 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+media_player:
+    - platform: onkyo
+      name: Onkyo
+      max_volume: 50
+      receiver_max_volume: 80
+      sources:
+        tv-cd: Vinyl
+        internet-radio-1: AirPlay
