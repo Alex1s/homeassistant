@@ -13,7 +13,7 @@ scene: !include scenes.yaml
 media_player:
     - platform: onkyo
       name: Onkyo
-      max_volume: 50
+      max_volume: 70
       receiver_max_volume: 80
       disable_select_hdmi_output: True
       sources:
