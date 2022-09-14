@@ -1,0 +1,33 @@
+- id: '1663175670664'
+  alias: Vinyl On
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - binary_sensor.plattenspieler
+    from: 'off'
+    to: 'on'
+  condition: []
+  action:
+  - service: media_player.select_source
+    data:
+      source: Vinyl
+    target:
+      entity_id: media_player.tx_nr609_0009b0c3dbee
+  mode: single
+- id: '1663176154563'
+  alias: Vinyl Off
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - binary_sensor.plattenspieler
+    from: 'on'
+    to: 'off'
+  condition: []
+  action:
+  - service: media_player.turn_off
+    data: {}
+    target:
+      entity_id: media_player.tx_nr609_0009b0c3dbee
+  mode: single
