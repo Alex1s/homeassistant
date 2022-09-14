@@ -20,6 +20,14 @@ media_player:
         cd: Vinyl
         internet-radio-1: AirPlay
 
+binary_sensor:
+  - platform: template
+    sensors:
+      plattenspieler:
+        device_class: power
+        friendly_name: "Plattenspieler"
+        value_template: "{{ not is_state('sensor.vcc_voltage', 'unavailable') }}"
+
 logger:
   default: warning
   logs:
